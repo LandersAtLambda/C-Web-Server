@@ -143,7 +143,8 @@ void cache_put(struct cache *cache, char *path, char *content_type, void *conten
     // Allocate a new cache entry with the passed parameters.
     struct cache_entry *ce = alloc_entry(path, content_type, content, content_length);
     // Insert the entry at the head of the doubly-linked list.
-    dllist_move_to_head(cache, ce);
+
+    dllist_insert_head(cache, ce);
     // Store the entry in the hashtable as well, indexed by the entry's path.
     hashtable_put(cache->index, path, ce);
     // Increment the current size of the cache.
@@ -154,7 +155,7 @@ void cache_put(struct cache *cache, char *path, char *content_type, void *conten
         //  Remove the cache entry at the tail of the linked list.
         struct cache_entry *ce = dllist_remove_tail(cache);
         //  Remove that same entry from the hashtable, using the entry's path and the hashtable_delete function.
-        hashtable_delete(cache->index, path);
+        hashtable_delete(cache->index, ce->path);
         //  Free the cache entry.
         free_entry(ce);
         //  Ensure the size counter for the number of entries in the cache is correct.
@@ -167,11 +168,10 @@ void cache_put(struct cache *cache, char *path, char *content_type, void *conten
 struct cache_entry *cache_get(struct cache *cache, char *path)
 {
     // Attempt to find the cache entry pointer by path in the hash table.
-    struct cache_entry *ce = malloc(sizeof ce);
-    ce->content = hashtable_get(cache->index, path);
+    struct cache_entry *ce = hashtable_get(cache->index, path);
 
     // If not found, return NULL.
-    if (ce->content == NULL)
+    if (ce == NULL)
     {
         return NULL;
     }
