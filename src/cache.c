@@ -160,6 +160,7 @@ void cache_put(struct cache *cache, char *path, char *content_type, void *conten
         free_entry(ce);
         //  Ensure the size counter for the number of entries in the cache is correct.
     }
+    printf("%s\n", "cache put");
 }
 
 /**
@@ -178,5 +179,6 @@ struct cache_entry *cache_get(struct cache *cache, char *path)
     // Move the cache entry to the head of the doubly-linked list.
     dllist_move_to_head(cache, ce);
     // Return the cache entry pointer.
+    printf("%s\n", "cache get");
     return ce;
 }

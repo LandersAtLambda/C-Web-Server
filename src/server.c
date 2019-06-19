@@ -140,6 +140,7 @@ void get_file(int fd, struct cache *cache, char *request_path)
     }
     mime_type = mime_type_get(filepath);
 
+    cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
     send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
     file_free(filedata);
 }
@@ -152,6 +153,8 @@ void get_file(int fd, struct cache *cache, char *request_path)
  */
 char *find_start_of_body(char *header)
 {
+    (void)header;
+    return NULL;
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
@@ -186,7 +189,15 @@ void handle_http_request(int fd, struct cache *cache)
         }
         else
         {
-            get_file(fd, cache, path);
+            struct cache_entry *ce = cache_get(cache, path);
+            if (ce)
+            {
+                send_response(fd, "HTTP/1.1 404 NOT FOUND", ce->content_type, ce->content, ce->content_length);
+            }
+            else
+            {
+                get_file(fd, cache, path);
+            }
         }
     }
     else
