@@ -54,23 +54,24 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     char response[max_response_size];
 
     // Build HTTP response and store it in response
-    sprintf(response, "%s\n"
-                      "Content-Type: %s\n"
-                      "Content-Length: %d\n"
-                      "Connection: close\n"
-                      "\n"
-                      "%s\n",
-            header, content_type, content_length, body);
+    int response_length = sprintf(response, "%s\n"
+                                            "Content-Type: %s\n"
+                                            "Content-Length: %d\n"
+                                            "Connection: close\n"
+                                            "\n",
+                                  header, content_type, content_length);
 
-    int response_length = strlen(response);
-
-    // Send it all!
+    // Send the header
     int rv = send(fd, response, response_length, 0);
 
     if (rv < 0)
-    {
         perror("send");
-    }
+
+    //Send the body
+    rv = send(fd, body, content_length, 0);
+
+    if (rv < 0)
+        perror("send");
 
     return rv;
 }
@@ -129,19 +130,17 @@ void get_file(int fd, struct cache *cache, char *request_path)
     struct file_data *filedata;
     char *mime_type;
 
-    char path[2000];
-    sprintf(path, "%s%s", SERVER_ROOT, request_path);
-
-    snprintf(filepath, sizeof filepath, "%s", path);
-
+    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
     filedata = file_load(filepath);
 
     if (filedata == NULL)
     {
         resp_404(fd);
+        return;
     }
     mime_type = mime_type_get(filepath);
 
+    cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
     send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
     file_free(filedata);
 }
@@ -154,6 +153,8 @@ void get_file(int fd, struct cache *cache, char *request_path)
  */
 char *find_start_of_body(char *header)
 {
+    (void)header;
+    return NULL;
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
@@ -188,7 +189,15 @@ void handle_http_request(int fd, struct cache *cache)
         }
         else
         {
-            get_file(fd, cache, path);
+            struct cache_entry *ce = cache_get(cache, path);
+            if (ce)
+            {
+                send_response(fd, "HTTP/1.1 404 NOT FOUND", ce->content_type, ce->content, ce->content_length);
+            }
+            else
+            {
+                get_file(fd, cache, path);
+            }
         }
     }
     else
